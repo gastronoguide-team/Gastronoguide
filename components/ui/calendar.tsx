@@ -10,7 +10,7 @@ import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { start } from "repl"
+import { calculateAvailability, type Appointment } from "@/lib/availability"
 
 function Calendar({
   className,
@@ -24,9 +24,8 @@ function Calendar({
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
-  appointmentData?: unknown
+  appointmentData?: Appointment[]
 }) {
-  console.log('appointmentData in Calendar',JSON.stringify(appointmentData,null,2))
   const defaultClassNames = getDefaultClassNames()
 
   return (
@@ -159,7 +158,7 @@ function Calendar({
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
           )
         },
-        DayButton: (props) => <CalendarDayButton {...props} />,
+        DayButton: (props) => <CalendarDayButton {...props} appointmentData={appointmentData} />,
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>
@@ -180,9 +179,12 @@ function CalendarDayButton({
   className,
   day,
   modifiers,
+  appointmentData,
   ...props
 }: React.ComponentProps<typeof DayButton> & {
+  appointmentData?: Appointment[]
 }) {
+  console.log('appointmentData in CalendarDayButton',JSON.stringify(appointmentData,null,2))
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)
@@ -190,7 +192,11 @@ function CalendarDayButton({
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
 
-  const placesRestantes = 24
+  const availability = appointmentData
+    ? calculateAvailability(day.date, appointmentData)
+    : { morning: 12, noon: 12, total: 24 };
+
+  const placesRestantes = availability.total
 
   const isPast = day.date < new Date(new Date().setHours(0, 0, 0, 0))
 

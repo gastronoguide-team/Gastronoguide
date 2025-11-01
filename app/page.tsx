@@ -12,6 +12,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getPricePerPerson } from "../lib/utils";
+import { calculateAvailability, getRemainingSpots, type Appointment } from "../lib/availability";
 
 export default function Home() {
   const { toast } = useToast();
@@ -23,10 +24,18 @@ export default function Home() {
   const [startTime, setStartTime] = useState<string | undefined>(undefined)
   const [participants, setParticipants] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [appointments, setAppointments] = useState<unknown[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const pricePerPerson = getPricePerPerson(participants);
   const totalPrice = pricePerPerson * participants;
+
+  // Calculate availability for selected date
+  const availability = reservationDate
+    ? calculateAvailability(reservationDate, appointments)
+    : { morning: 12, noon: 12, total: 24 };
+
+  // Get remaining spots for selected date and time slot
+  const remainingSpots = getRemainingSpots(reservationDate, startTime, appointments);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -45,6 +54,13 @@ export default function Home() {
 
     fetchAppointments();
   }, []);
+
+  // Reset participants if selected count exceeds available spots
+  useEffect(() => {
+    if (participants > remainingSpots) {
+      setParticipants(Math.min(remainingSpots, 1));
+    }
+  }, [remainingSpots, participants]);
   
   const handleCheckout = async () => {
     if (!reservationDate) {
@@ -170,7 +186,6 @@ export default function Home() {
                         disabled={(date) =>
                           date < new Date(new Date().setHours(0, 0, 0, 0))
                         }
-                        initialFocus
                         appointmentData={appointments}
                       />
                     </PopoverContent>
@@ -186,14 +201,26 @@ export default function Home() {
                       <SelectValue placeholder="Sélectionnez un créneau" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="09:00 - 11:00">
-                        <div className="flex items-center gap-2">
+                      <SelectItem
+                        value="09:00 - 11:00"
+                        disabled={availability.morning === 0}
+                      >
+                        <div className="flex items-center justify-between gap-4 w-full">
                           <span>Matin : 09:00 - 11:00</span>
+                          <span className={`text-xs font-semibold ${availability.morning === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                            {availability.morning === 0 ? 'Complet' : `${availability.morning} places`}
+                          </span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="11:30 - 13:30">
-                        <div className="flex items-center gap-2">
+                      <SelectItem
+                        value="11:30 - 13:30"
+                        disabled={availability.noon === 0}
+                      >
+                        <div className="flex items-center justify-between gap-4 w-full">
                           <span>Midi : 11:30 - 13:30</span>
+                          <span className={`text-xs font-semibold ${availability.noon === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                            {availability.noon === 0 ? 'Complet' : `${availability.noon} places`}
+                          </span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -203,30 +230,32 @@ export default function Home() {
 
               <div className="space-y-2">
                 <Label className="text-gray-700 font-medium">
-                  Nombre de participants (max 12)
+                  {reservationDate && startTime
+                    ? `Nombre de participants (${remainingSpots} places restantes)`
+                    : "Nombre de participants (max 12)"}
                 </Label>
-                <Select 
-                  value={participants.toString()} 
+                <Select
+                  value={participants.toString()}
                   onValueChange={(value: string) => setParticipants(parseInt(value))}
                 >
                   <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">
+                    <SelectItem value="1" disabled={remainingSpots < 1}>
                       <div className="flex justify-between items-center w-full gap-8">
                         <span>1 personne</span>
                         <span className="font-semibold">120€</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="2">
+                    <SelectItem value="2" disabled={remainingSpots < 2}>
                       <div className="flex justify-between items-center w-full gap-8">
                         <span>2 personnes</span>
                         <span className="font-semibold">72€/pers</span>
                       </div>
                     </SelectItem>
                     {[3, 4].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
+                      <SelectItem key={num} value={num.toString()} disabled={remainingSpots < num}>
                         <div className="flex justify-between items-center w-full gap-8">
                           <span>{num} personnes</span>
                           <span className="font-semibold">60€/pers</span>
@@ -234,7 +263,7 @@ export default function Home() {
                       </SelectItem>
                     ))}
                     {[5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
+                      <SelectItem key={num} value={num.toString()} disabled={remainingSpots < num}>
                         <div className="flex justify-between items-center w-full gap-8">
                           <span>{num} personnes</span>
                           <span className="font-semibold">55€/pers</span>
