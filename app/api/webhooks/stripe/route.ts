@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { sendConfirmationEmail, sendOwnerSMS } from "@/lib/brevo";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
@@ -94,6 +95,41 @@ export async function POST(req: Request) {
         });
 
         console.log("✅ Appointment enregistré en BDD avec succès:", metadata.email);
+
+        // Envoi de l'email de confirmation au client
+        try {
+          await sendConfirmationEmail({
+            firstName: metadata.firstName || "",
+            lastName: metadata.lastName || "",
+            email: metadata.email || "",
+            phone: metadata.phone || "",
+            date: metadata.date,
+            startTime: metadata.startTime,
+            participantsCount,
+          });
+          console.log("✅ Email de confirmation envoyé au client");
+        } catch (emailError) {
+          console.error("⚠️ Erreur lors de l'envoi de l'email au client:", emailError);
+          // On continue même si l'email échoue
+        }
+
+        // Envoi du SMS de notification au propriétaire
+        try {
+          await sendOwnerSMS({
+            firstName: metadata.firstName || "",
+            lastName: metadata.lastName || "",
+            email: metadata.email || "",
+            phone: metadata.phone || "",
+            date: metadata.date,
+            startTime: metadata.startTime,
+            participantsCount,
+          });
+          console.log("✅ SMS de notification envoyé au propriétaire");
+        } catch (smsError) {
+          console.error("⚠️ Erreur lors de l'envoi du SMS au propriétaire:", smsError);
+          // On continue même si le SMS échoue
+        }
+
         break;
 
       default:

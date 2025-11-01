@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { CheckCircle2, Calendar, Clock, Users, Mail, Phone, User } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -17,7 +18,7 @@ interface BookingDetails {
   totalAmount: number;
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
@@ -180,14 +181,26 @@ export default function SuccessPage() {
           )}
         </div>
         <div className="text-center">
-          <a
+          <Link
             href="/"
             className="inline-block bg-[#B6D7A5] text-black px-8 py-3 rounded-lg font-semibold text-lg hover:bg-[#B6D7A5]/90 transition-colors"
           >
-            Retour à l'accueil
-          </a>
+            Retour à l&apos;accueil
+          </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#B6D7A5] border-t-transparent"></div>
+      </div>
+    }>
+      <SuccessPageContent />
+    </Suspense>
   );
 }
