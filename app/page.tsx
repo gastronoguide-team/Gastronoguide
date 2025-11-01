@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Calendar } from "../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
 import { useToast } from "../components/ui/use-toast";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
@@ -25,6 +26,7 @@ export default function Home() {
   const [participants, setParticipants] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [rgpdConsent, setRgpdConsent] = useState(false);
 
   const pricePerPerson = getPricePerPerson(participants);
   const totalPrice = pricePerPerson * participants;
@@ -61,7 +63,7 @@ export default function Home() {
       setParticipants(Math.min(remainingSpots, 1));
     }
   }, [remainingSpots, participants]);
-  
+
   const handleCheckout = async () => {
     if (!reservationDate) {
       toast({
@@ -70,11 +72,19 @@ export default function Home() {
       });
       return;
     }
-    
+
     if (!startTime) {
       toast({
         title: "Créneau manquant",
         description: "Veuillez sélectionner un créneau horaire",
+      });
+      return;
+    }
+
+    if (!rgpdConsent) {
+      toast({
+        title: "Consentement requis",
+        description: "Veuillez accepter la politique de confidentialité",
       });
       return;
     }
@@ -120,13 +130,13 @@ export default function Home() {
 
       const data = await res.json();
       console.log("Réponse de l'API:", data);
-      
+
       if (data.url) {
         toast({
           title: "Succès !",
           description: "Redirection vers la page de paiement...",
         });
-        
+
         setTimeout(() => {
           window.location.href = data.url;
         }, 500);
@@ -147,7 +157,7 @@ export default function Home() {
     }
   };
 
-  const isFormValid = firstName && lastName && phone && email && reservationDate && startTime && participants > 0;
+  const isFormValid = firstName && lastName && phone && email && reservationDate && startTime && participants > 0 && rgpdConsent;
 
   return (
     <div className="">
@@ -166,9 +176,8 @@ export default function Home() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`w-full justify-start text-left font-normal h-12 ${
-                          !reservationDate && "text-muted-foreground"
-                        }`}
+                        className={`w-full justify-start text-left font-normal h-12 ${!reservationDate && "text-muted-foreground"
+                          }`}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {reservationDate ? (
@@ -191,7 +200,7 @@ export default function Home() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-gray-700 font-medium">
                     Créneau horaire
@@ -339,6 +348,32 @@ export default function Home() {
                 </div>
               </div>
 
+              <div className="mb-6">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="rgpd-consent"
+                    checked={rgpdConsent}
+                    onCheckedChange={(checked) => setRgpdConsent(checked as boolean)}
+                    className="mt-1 shrink-0"
+                  />
+                  <div
+                    className="text-sm text-gray-700 leading-relaxed cursor-pointer max-w-prose"
+                  >
+                    J&apos;accepte que mes données personnelles soient collectées et traitées conformément à la{" "}
+                    <a
+                      href="/politique-confidentialite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#B6D7A5] hover:text-[#B6D7A5]/80 underline font-medium"
+                    >
+                      politique de confidentialité
+                    </a>
+                    . Ces données sont nécessaires pour traiter votre réservation et vous contacter si besoin.
+                  </div>
+                </div>
+              </div>
+
+
               <Button
                 onClick={handleCheckout}
                 disabled={!isFormValid || isLoading}
@@ -370,7 +405,7 @@ export default function Home() {
             <div className="p-4 sm:p-6">
               <div className="mb-4">
                 <h3 className="text-2xl sm:text-3xl font-bold mb-2">Matinée Gastronomique</h3>
-                
+
                 <div className="bg-[#B6D7A5]/10 border-l-4 border-[#B6D7A5] p-3 sm:p-4 rounded">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm sm:text-base text-gray-700 font-medium">
