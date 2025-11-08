@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getPricePerPerson(participants: number): number {
+  if (participants <= 0) return 120; // Default to single person price
   if (participants === 1) return 120;
   if (participants === 2) return 72;
   if (participants >= 3 && participants <= 4) return 60;

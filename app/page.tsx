@@ -57,12 +57,20 @@ export default function Home() {
     fetchAppointments();
   }, []);
 
-  // Reset participants if selected count exceeds available spots
+  // Reset startTime and participants when date changes
   useEffect(() => {
-    if (participants > remainingSpots) {
-      setParticipants(Math.min(remainingSpots, 1));
+    if (reservationDate) {
+      setStartTime(undefined);
+      setParticipants(1);
     }
-  }, [remainingSpots, participants]);
+  }, [reservationDate]);
+
+  // Reset participants if selected count exceeds available spots for the chosen time slot
+  useEffect(() => {
+    if (startTime && participants > remainingSpots && remainingSpots > 0) {
+      setParticipants(remainingSpots);
+    }
+  }, [remainingSpots, participants, startTime]);
 
   const handleCheckout = async () => {
     if (!reservationDate) {
